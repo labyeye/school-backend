@@ -7,7 +7,7 @@ const app = express();
 const port = process.env.PORT || 3001;
 
 // Your Firebase configuration
-const serviceAccount = require('/Users/labh/Desktop/Projects/ADMIN-STAFF-DASHBOARD/server/firebase/school-ee33a-firebase-adminsdk-sa3e3-329ccc1738.json');
+const serviceAccount = require('/Users/athulnambiar/Desktop/PROJECTS/school-backend-1/server/firebase/school-ee33a-firebase-adminsdk-sa3e3-329ccc1738.json');
 
 // Initialize Firebase Admin SDK
 admin.initializeApp({
@@ -108,21 +108,29 @@ app.put('/updatenotification/:id', async (req, res) => {
 
   app.post('/createuser', async (req, res) => {
     try {
-      const { name, email, password, type } = req.body;
-  
-      const userRef = await db.collection('users').add({
-        name: name,
-        email: email,
-        password: password,
-        type: type,
-      });
-  
-      res.status(201).json({ message: 'User created successfully', id: userRef.id });
+        const { name, email, password, type } = req.body;
+
+        // Check if the user already exists
+        const userQuerySnapshot = await db.collection('users').where('email', '==', email).get();
+        if (!userQuerySnapshot.empty) {
+            return res.status(400).json({ error: 'User with this email already exists' });
+        }
+
+        // If the user doesn't exist, create a new user
+        const userRef = await db.collection('users').add({
+            name: name,
+            email: email,
+            password: password,
+            type: type,
+        });
+
+        res.status(201).json({ message: 'User created successfully', id: userRef.id });
     } catch (error) {
-      console.error('Error creating user:', error);
-      res.status(500).json({ error: 'Failed to create user' });
+        console.error('Error creating user:', error);
+        res.status(500).json({ error: 'Failed to create user' });
     }
-  });
+});
+
   app.post('/addparentemail', async (req, res) => {
     try {
       const {email} = req.body;
@@ -152,6 +160,29 @@ app.put('/updatenotification/:id', async (req, res) => {
       res.status(500).json({ error: 'Failed to fetch users' });
     }
   });
+
+  app.delete('/deleteuser', async (req, res) => {
+    try {
+        const { email } = req.body;
+
+        // Check if the user exists
+        const userQuerySnapshot = await db.collection('users').where('email', '==', email).get();
+        if (userQuerySnapshot.empty) {
+            return res.status(404).json({ error: 'User not found' });
+        }
+
+        // Delete the user
+        userQuerySnapshot.forEach(async (doc) => {
+            await db.collection('users').doc(doc.id).delete();
+        });
+
+        res.status(200).json({ message: 'User deleted successfully' });
+    } catch (error) {
+        console.error('Error deleting user:', error);
+        res.status(500).json({ error: 'Failed to delete user' });
+    }
+});
+
   
 // Start the server
 app.listen(port, () => {
