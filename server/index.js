@@ -164,8 +164,6 @@ app.get('/getparentemails', async (req, res) => {
   }
 });
 
-
-
 app.get('/users', async (req, res) => {
   try {
     const snapshot = await db.collection('users').get();
